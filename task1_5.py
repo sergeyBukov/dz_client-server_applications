@@ -2,14 +2,12 @@
 байтовового в строковый тип на кириллице."""
 
 import subprocess
+import chardet
 
 args1 = ['ping', 'yandex.ru']
-args2 = ['ping', 'youtube.com']
 
 subproc_ping = subprocess.Popen(args1, stdout=subprocess.PIPE)
 for line in subproc_ping.stdout:
-    print(line.decode('utf-8'), end='')
-
-subproc_ping = subprocess.Popen(args2, stdout=subprocess.PIPE)
-for line in subproc_ping.stdout:
-    print(line.decode('utf-8'), end='')
+    result = chardet.detect(line)
+    line = line.decode(result['encoding']).encode('utf-8')
+    print(line.decode('utf-8'))
