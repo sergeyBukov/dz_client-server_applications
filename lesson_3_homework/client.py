@@ -1,31 +1,69 @@
-""" Функционал.
-Первая часть домашнего задания будет заключаться в реализации простого клиент-серверного
-    взаимодействия по протоколу JIM (JSON instant messaging):
-клиент отправляет запрос серверу;
-сервер отвечает соответствующим кодом результата.
-Клиент и сервер должны быть реализованы в виде отдельных скриптов, содержащих соответствующие
-    функции.
-Функции клиента:
-сформировать presence-сообщение;
-отправить сообщение серверу;
-получить ответ сервера;
-разобрать сообщение сервера;
-параметры командной строки скрипта client.py <addr> [<port>]:
-addr - ip-адрес сервера; port - tcp-порт на сервере, по умолчанию 7777."""
-from socket import socket, AF_INET, SOCK_STREAM
+"""Программа-клиент"""
 
-# # IP адрес по умолчанию для подключения клиента
-ADDR = "127.0.0.1"
+import sys
+import json
+import socket
+import time
+from common.variables import ACTION, PRESENCE, TIME, USER, ACCOUNT_NAME, \
+    RESPONSE, ERROR, DEFAULT_IP_ADDRESS, DEFAULT_PORT
+from common.utils import get_message, send_message
 
-try:
-    while True:
-        CLIENT_SOCK = socket(AF_INET, SOCK_STREAM)  # Создать сокет TCP
-        CLIENT_SOCK.connect(('localhost', 7777))  # Соединиться с сервером
-        DATA = CLIENT_SOCK.recv(1024)  # Принять не более 1024 байтов данных
-        print(f"Сообщение: {DATA.decode('utf-8')} было отправлено клиентом: {ADDR}")
-        MSG = "Привет, сервер"
-        CLIENT_SOCK.send(MSG.encode('utf-8'))
-        print(f"Сообщение от сервера: {DATA.decode('utf-8')} длиной {len(DATA)} байт")
-        CLIENT_SOCK.close()
-finally:
-    CLIENT_SOCK.close()
+
+def create_presence(account_name='Guest'):
+    '''
+    Функция генерирует запрос о присутствии клиента
+    :param account_name:
+    :return:
+    '''
+    out = {
+        ACTION: PRESENCE,
+        TIME: time.time(),
+        USER: {
+            ACCOUNT_NAME: account_name
+        }
+    }
+    return out
+
+
+def process_ans(message):
+    '''
+    Функция разбирает ответ сервера
+    :param message:
+    :return:
+    '''
+    if RESPONSE in message:
+        if message[RESPONSE] == 200:
+            return '200 : OK'
+        return f'400 : {message[ERROR]}'
+    raise ValueError
+
+
+def main():
+    '''Загружаем параметы коммандной строки'''
+    try:
+        server_address = sys.argv[1]
+        server_port = int(sys.argv[2])
+        if server_port < 1024 or server_port > 65535:
+            raise ValueError
+    except IndexError:
+        server_address = DEFAULT_IP_ADDRESS
+        server_port = DEFAULT_PORT
+    except ValueError:
+        print('В качестве порта может быть указано только число в диапазоне от 1024 до 65535.')
+        sys.exit(1)
+
+    # Инициализация сокета и обмен
+
+    transport = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    transport.connect((server_address, server_port))
+    message_to_server = create_presence()
+    send_message(transport, message_to_server)
+    try:
+        answer = process_ans(get_message(transport))
+        print(answer)
+    except (ValueError, json.JSONDecodeError):
+        print('Не удалось декодировать сообщение сервера.')
+
+
+if __name__ == '__main__':
+    main()
