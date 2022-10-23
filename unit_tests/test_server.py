@@ -1,12 +1,8 @@
-"""1. Для всех функций из урока 3 написать тесты с использованием unittest. Они должны быть
-оформлены в отдельных скриптах с префиксом test_ в имени файла (например,
-test_client.py).
-"""
+"""Unit-тесты сервера"""
 
 import sys
 import os
 import unittest
-
 sys.path.append(os.path.join(os.getcwd(), '..'))
 from common.variables import RESPONSE, ERROR, USER, ACCOUNT_NAME, TIME, ACTION, PRESENCE
 from server import process_client_message
